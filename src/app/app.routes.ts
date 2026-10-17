@@ -1,48 +1,27 @@
 import { Routes } from '@angular/router';
-import { UsersPage } from './presentation/pages/users/users.page';
-import { ProductsPage } from './presentation/pages/products/products.page';
 
 /**
- * Definición de las rutas principales de la aplicación.
+ * Rutas principales de la aplicación.
  *
  * @remarks
- * Este archivo contiene la configuración de enrutamiento
- * utilizada por Angular Router para mapear las URLs
- * a los componentes correspondientes.
- *
- * Incluye:
- * - Rutas de navegación principales
- * - Redirección por defecto para rutas no existentes
- *
- * @see {@link UsersPage}
- * @see {@link ProductsPage}
+ * Cada módulo se carga de forma perezosa (lazy) mediante
+ * `loadChildren`. La ruta vacía y la ruta comodín redirigen a
+ * `users`.
  */
 export const routes: Routes = [
-
-  /**
-   * Ruta de usuarios.
-   *
-   * @remarks
-   * Renderiza el componente `UsersPage`, encargado
-   * de mostrar y gestionar el listado de usuarios.
-   */
-  { path: 'users', component: UsersPage },
-
-  /**
-   * Ruta de productos.
-   *
-   * @remarks
-   * Renderiza el componente `ProductsPage`, encargado
-   * de mostrar y gestionar el listado de productos.
-   */
-  { path: 'products', component: ProductsPage },
-
-  /**
-   * Ruta comodín.
-   *
-   * @remarks
-   * Captura cualquier ruta no definida y redirige
-   * automáticamente a la ruta de usuarios.
-   */
+  { path: '', redirectTo: 'users', pathMatch: 'full' },
+  {
+    path: 'users',
+    loadChildren: () => import('./presentation/users/users.routes').then((m) => m.USERS_ROUTES),
+  },
+  {
+    path: 'products',
+    loadChildren: () =>
+      import('./presentation/products/products.routes').then((m) => m.PRODUCTS_ROUTES),
+  },
+  {
+    path: 'orders',
+    loadChildren: () => import('./presentation/orders/orders.routes').then((m) => m.ORDERS_ROUTES),
+  },
   { path: '**', redirectTo: 'users' },
 ];
