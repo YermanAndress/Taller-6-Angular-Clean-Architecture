@@ -1,52 +1,39 @@
 /**
- * Interfaz que representa un producto.
- *
- * Contiene la información básica necesaria para mostrar un producto
- * en la tabla o en cualquier componente de listado.
+ * Interfaz que representa un producto del catálogo.
  *
  * @remarks
- * Cada producto debe tener un `id` único, un `name` descriptivo,
- * una `category` válida y un `price` en pesos colombianos.
+ * Pertenece a la **capa de dominio** y describe los atributos
+ * necesarios para listar y detallar un producto, sin acoplarse
+ * a ningún backend específico.
  *
  * @example
  * ```ts
  * const producto: Product = {
- *   id: 1,
- *   name: 'Leche entera',
- *   category: 'Lacteos',
- *   price: 4500
+ *   id: '1',
+ *   name: 'Nevera',
+ *   description: 'Nevera de dos puertas',
+ *   price: 1899.99,
+ *   category: 'Electrodomésticos',
+ *   stock: 12,
  * };
  * ```
  */
 export interface Product {
-    /** Identificador único del producto */
-    id: number;
+  /** Identificador único del producto. */
+  id: string;
 
-    /** Nombre o descripción del producto */
-    name: string;
+  /** Nombre comercial del producto. */
+  name: string;
 
-    /** Categoría del producto */
-    category: ProductCategory;
+  /** Descripción detallada del producto. */
+  description: string;
 
-    /** Precio del producto en pesos */
-    price: number;
+  /** Precio unitario del producto. */
+  price: number;
+
+  /** Categoría a la que pertenece el producto. */
+  category: string;
+
+  /** Unidades disponibles en inventario. */
+  stock: number;
 }
-
-/**
- * Tipo de categoría de producto.
- *
- * @remarks
- * Este tipo restringe las categorías a los valores predefinidos:
- * - 'Lacteos'
- * - 'Carnes'
- * - 'Frutas'
- * - 'Verduras'
- *
- * Se utiliza principalmente para mapear badges de colores en la UI.
- *
- * @example
- * ```ts
- * const categoria: ProductCategory = 'Frutas';
- * ```
- */
-export type ProductCategory = 'Lacteos' | 'Carnes' | 'Frutas' | 'Verduras';

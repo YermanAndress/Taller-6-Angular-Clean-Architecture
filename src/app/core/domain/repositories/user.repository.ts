@@ -4,41 +4,31 @@ import { User } from '../models/user.model';
 /**
  * Contrato del repositorio de usuarios.
  *
- * @description
- * Define el contrato de acceso a datos para la entidad `User`
- * dentro de la **capa de dominio**, siguiendo los principios de
- * Clean Architecture.
- *
- * Permite desacoplar la lógica de negocio de los detalles de
- * implementación de la infraestructura.
- *
  * @remarks
- * Las implementaciones pueden variar (API REST, GraphQL,
- * almacenamiento local, mocks, etc.) sin afectar a los casos de uso.
+ * Clase abstracta que actúa como **token de inyección** dentro de
+ * la **capa de dominio**. Define las operaciones que toda
+ * implementación (local, Node o Spring) debe cumplir, sin exponer
+ * detalles de infraestructura.
  *
  * @example
  * ```ts
- * // Inyección por contrato
- * constructor(private userRepository: UserRepository) {}
+ * constructor(private readonly repository: UserRepository) {}
  * ```
- *
- * @architecture Clean Architecture
- * @layer Domain
- *
- * @see User
  */
 export abstract class UserRepository {
+  /**
+   * Obtiene un listado de usuarios.
+   *
+   * @param count - Cantidad de usuarios a recuperar.
+   * @returns Observable que emite el arreglo de {@link User}.
+   */
+  abstract getAll(count: number): Observable<User[]>;
 
   /**
-   * Obtiene el listado completo de usuarios.
+   * Obtiene un usuario por su identificador.
    *
-   * @returns {Observable<User[]>}
-   * Observable que emite un arreglo de usuarios del dominio.
-   *
-   * @remarks
-   * - No conoce la fuente de datos.
-   * - No transforma entidades de presentación.
-   * - Mantiene el dominio independiente de la infraestructura.
+   * @param id - Identificador único del usuario.
+   * @returns Observable que emite el {@link User} encontrado o `undefined`.
    */
-  abstract getAll(countUsers: number): Observable<User[]>;
+  abstract getById(id: string): Observable<User | undefined>;
 }

@@ -4,42 +4,31 @@ import { Product } from '../models/product.model';
 /**
  * Contrato del repositorio de productos.
  *
- * @description
- * Esta clase abstracta define el **contrato de acceso a datos**
- * para la entidad `Product` dentro del dominio.
- *
- * Forma parte de la **capa de dominio** y establece las operaciones
- * que cualquier implementación concreta debe cumplir, sin exponer
- * detalles de infraestructura (HTTP, base de datos, mocks, etc.).
- *
  * @remarks
- * Las implementaciones concretas de este repositorio pueden residir
- * en la capa de infraestructura y ser intercambiables sin afectar
- * al resto del sistema.
+ * Clase abstracta que actúa como **token de inyección** dentro de
+ * la **capa de dominio**. Define las operaciones que toda
+ * implementación (local, Node o Spring) debe cumplir, sin exponer
+ * detalles de infraestructura.
  *
  * @example
  * ```ts
- * // Inyección de dependencia por contrato
- * constructor(private productRepository: ProductRepository) {}
+ * constructor(private readonly repository: ProductRepository) {}
  * ```
- *
- * @architecture Clean Architecture
- * @layer Domain
- *
- * @see Product
  */
 export abstract class ProductRepository {
+  /**
+   * Obtiene un listado de productos.
+   *
+   * @param count - Cantidad de productos a recuperar.
+   * @returns Observable que emite el arreglo de {@link Product}.
+   */
+  abstract getAll(count: number): Observable<Product[]>;
 
   /**
-   * Obtiene el listado completo de productos.
+   * Obtiene un producto por su identificador.
    *
-   * @returns {Observable<Product[]>}
-   * Observable que emite un arreglo de productos del dominio.
-   *
-   * @remarks
-   * - No define la fuente de datos.
-   * - No gestiona errores de presentación.
-   * - Propaga los errores al consumidor.
+   * @param id - Identificador único del producto.
+   * @returns Observable que emite el {@link Product} encontrado o `undefined`.
    */
-  abstract getAll(countUsers: number): Observable<Product[]>;
+  abstract getById(id: string): Observable<Product | undefined>;
 }
