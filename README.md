@@ -1,128 +1,148 @@
 # Clean Architecture en Angular
 
+Aplicación Angular 20 (standalone) que implementa **Clean Architecture** para el Taller 6 de
+Arquitectura de Software (UCEVA). La app consume tres backends intercambiables (datos locales
+generados con Faker, API Node.js y API Spring Boot) sin que la capa de presentación ni los casos
+de uso cambien: basta con modificar una única constante.
+
+## Arquitectura por capas
+
+La regla de dependencias es estricta: `domain` no importa nada de las demás capas (solo `rxjs`),
+`application` solo importa `domain` y `presentation` solo usa casos de uso (nunca inyecta
+repositorios, servicios HTTP ni `HttpClient`).
+
 ```
 src/app
 │
 ├── core
-│   ├── domain
+│   ├── domain                      ← Sin dependencias externas (solo rxjs)
 │   │   ├── models
 │   │   │   ├── user.model.ts
-│   │   │   └── product.model.ts
-│   │   └── repositories
+│   │   │   ├── product.model.ts
+│   │   │   └── order.model.ts
+│   │   └── repositories            ← Clases ABSTRACTAS (tokens de DI)
 │   │       ├── user.repository.ts
-│   │       └── product.repository.ts
+│   │       ├── product.repository.ts
+│   │       └── order.repository.ts
 │   │
-│   ├── application
-│   │   └── use-cases
-│   │       ├── get-all-users.usecase.ts
-│   │       ├── get-user-by-id.usecase.ts
-│   │       ├── get-all-products.usecase.ts
-│   │       └── get-product-by-id.usecase.ts
+│   ├── application                 ← Solo importa domain
+│   │   └── usecases
+│   │       ├── user
+│   │       │   ├── get-all-users.usecase.ts
+│   │       │   └── get-user-by-id.usecase.ts
+│   │       ├── product
+│   │       │   ├── get-all-products.usecase.ts
+│   │       │   └── get-product-by-id.usecase.ts
+│   │       └── order
+│   │           ├── get-all-orders.usecase.ts
+│   │           └── get-order-by-id.usecase.ts
 │   │
-│   └── infrastructure
+│   └── infrastructure              ← Adaptadores (interfaces ↔ backend)
+│       ├── config
+│       │   ├── backend.config.ts         ← InjectionToken NODE_API_URL / SPRING_API_URL
+│       │   └── repository.providers.ts   ← ACTIVE_BACKEND + provideRepositories()
 │       ├── services
-│       │   ├── user-api.service.ts
-│       │   └── product-api.service.ts
+│       │   ├── user.service.ts
+│       │   ├── product.service.ts
+│       │   └── order.service.ts
 │       └── repositories
-│           ├── user.repository.impl.ts
-│           └── product.repository.impl.ts
+│           ├── entity-cache.ts           ← EntityCache<T> en memoria
+│           ├── local                     ← Datos generados con @faker-js/faker
+│           ├── node                      ← Servicio HTTP + NODE_API_URL
+│           └── spring                    ← Servicio HTTP + SPRING_API_URL
 │
-├── presentation
+├── presentation                    ← Solo usa casos de uso
+│   ├── shared
+│   │   └── navbar/navbar.component.ts
 │   ├── users
-│   └── products
+│   │   ├── users-list/users-list.component.ts
+│   │   ├── users-detail/users-detail.component.ts
+│   │   └── users.routes.ts
+│   ├── products
+│   │   ├── products-list/products-list.component.ts
+│   │   ├── products-detail/products-detail.component.ts
+│   │   └── products.routes.ts
+│   └── orders
+│       ├── orders-list/orders-list.component.ts
+│       ├── orders-detail/orders-detail.component.ts
+│       └── orders.routes.ts
 │
-└── app.config.ts
+├── testing
+│   └── fixtures.ts                 ← Datos de ejemplo (USERS, PRODUCTS, ORDERS)
+│
+├── app.ts                          ← Componente raíz (navbar + router-outlet)
+├── app.config.ts                   ← Providers globales + provideRepositories(ACTIVE_BACKEND)
+└── app.routes.ts                   ← Rutas raíz con lazy loading por módulo
 ```
 
+Cada archivo con lógica tiene su `.spec.ts` adyacente.
 
-## Paso 1 - Crear Modelos
+## Cambiar de backend
 
-```
-src/app/core/domain/models/
-├── user.model.ts
-└── product.model.ts
-```
+El backend activo se controla desde **una sola constante** en
+`src/app/core/infrastructure/config/repository.providers.ts`:
 
-## Paso 2 - Crear Repositorios
-
-```
-src/app/core/domain/repositories/
-├── user.repository.ts
-└── product.repository.ts
+```ts
+export type BackendType = 'local' | 'node' | 'spring';
+export const ACTIVE_BACKEND: BackendType = 'node'; // ← cambiar a 'local' o 'spring'
 ```
 
-## Paso 3 - Crear Casos de Uso
+`app.config.ts` propaga esta selección con `...provideRepositories(ACTIVE_BACKEND)`, que enlaza
+los contratos de dominio (`UserRepository`, `ProductRepository`, `OrderRepository`) con la
+implementación concreta correspondiente. No es necesario tocar ningún componente ni caso de uso.
 
-### User
-```
-src/app/core/application/usecases/user/
-├── get-all-users.usecase.ts
-└── get-user-by-id.usecase.ts
-```
+## URLs de los backends
 
-### Product
-```
-src/app/core/application/usecases/product/
-├── get-all-products.usecase.ts
-└── get-product-by-id.usecase.ts
-```
+Las URLs se definen en `src/app/core/infrastructure/config/backend.config.ts` mediante tokens
+(`NODE_API_URL` y `SPRING_API_URL`) con valor por defecto `http://localhost:3000/api`, según el
+puerto indicado en el README del taller para ambos backends.
 
-## Paso 4 - Crear Servicios
+| Backend      | URL base por defecto      | Endpoints consumidos                  |
+| ------------ | ------------------------- | ------------------------------------- |
+| Frontend     | `http://localhost:4200`   | —                                     |
+| Node.js      | `http://localhost:3000/api` | `GET /users/{count}`, `/products/{count}`, `/orders/{count}` |
+| Spring Boot  | `http://localhost:3000/api` | `GET /users/{count}`, `/products/{count}`, `/orders/{count}` |
 
+> Documentación de los backends: Node en `http://localhost:3000/api/docs` y Spring en
+> `http://localhost:3000/api/swagger-ui/index.html`.
 
-```
-src/app/core/infrastructure/services/
-├── user.service.ts
-└── product.service.ts
-```
+Las APIs solo exponen el listado `/{recurso}/{cantidad}`. Por eso `getById` no consulta un
+endpoint de detalle, sino que busca en la última lista cargada, que se guarda en memoria con
+`EntityCache<T>` (ver `src/app/core/infrastructure/repositories/entity-cache.ts`).
 
-## Paso 5 - Crear Repositorios Implementadores
+## Comandos
 
-### Implementación para Consumo de Datos Local
-```
-src/app/core/infrastructure/repositories/local
-├── user-local.repository.impl.ts
-└── product-local.repository.impl.ts
-```
+```bash
+# Instalar dependencias
+npm install
 
-### Implementación para Consumo de Datos NodeJS
-```
-src/app/core/infrastructure/repositories/node
-├── user-node.repository.impl.ts
-└── product-node.repository.impl.ts
-```
-
-## Paso 6 - Agregar Providers con sus Implementadores
-
-```
-src/app/
-└── app.config.ts
-```
-
-# Funcionamiento del Frontend
-
-## Ejecutar Frontend
-```
+# Arrancar el frontend en modo desarrollo (http://localhost:4200)
 npm run start
+
+# Ejecutar pruebas unitarias
+npm test
+
+# Ejecutar pruebas con reporte de cobertura (umbral global 90%)
+npm run test:coverage
+
+# Generar la documentación técnica con Compodoc en ./documentation
+npm run compodoc
+
+# Construir para producción en ./dist
+npm run build
 ```
 
-## Urls Consumo
+## Supuestos
 
-### Frontend
-```
-http://localhost:4200
-```
-
-### Backend NodeJS
-```
-http://localhost:3000/api/docs
-http://localhost:3000/api/users/{countUsers}
-http://localhost:3000/api/products/{countProducts}
-```
-
-### Backend SpringBoot
-```
-http://localhost:3000/api/swagger-ui/index.html
-http://localhost:3000/api/users/{countUsers}
-http://localhost:3000/api/products/{countProducts}
-```
+- **Tercer módulo**: además de usuarios y productos, se agregó el módulo de **órdenes**
+  (`Order`), completo con listado, detalle, rutas y caso de uso `getById`.
+- **Modelos**: `User` (`id`, `fullName`, `email`, `phone`, `city`), `Product`
+  (`id`, `name`, `description`, `price`, `category`, `stock`) y `Order`
+  (`id`, `customer`, `product`, `quantity`, `total`, `status`, `createdAt`).
+- **Endpoint de detalle inexistente**: como las APIs solo exponen el listado, `getById` se
+  resuelve con `EntityCache` en memoria (última lista cargada).
+- **Puerto**: Node y Spring comparten el puerto `3000` según el README del taller. Si el grupo
+  expone Spring en otro puerto (por ejemplo `8080`), basta con cambiar `SPRING_API_URL`.
+- **Contratos de backend**: si el backend de los grupos expone otros campos en sus respuestas,
+  el mapeo de DTO a modelo de dominio se hace dentro de las implementaciones Node/Spring
+  (marca de comentario en cada repositorio).
